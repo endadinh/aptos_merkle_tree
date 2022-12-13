@@ -1,12 +1,10 @@
 [package]
-name = "merkle"
-version = "0.0.0"
-
-[dependencies]
-AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-framework", rev = "main" }
+name = 'dagora_launchpad'
+version = '1.0.0'
 
 [addresses]
-std =  "0x1"
-aptos_std = "0x1"
-aptos_framework = "0x1"
-aptos_merkle = "0x114514"
+DagoraLaunchpad = "d849853cbe1ae22a80eebf1d57bc0d0258b8c72e8cea601653f994ffaf7132d3"
+
+[dependencies]
+AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-framework/", rev="devnet"}
+AptosToken = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-token/", rev="devnet"}
