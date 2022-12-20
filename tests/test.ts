@@ -1,10 +1,9 @@
-import keccak256  from 'keccak256';
 import { AptosAccount, AptosClient, CoinClient, FaucetClient, HexString, MaybeHexString, TokenClient, } from "aptos"
 import { HelloAptosClient } from '../Client/AptosClient';
+import { Hasher } from '../common/ts/hasher';
+import { MerkleTreeSha256 } from '../common/ts/merkle_tree';
+import { MerkleTreeService } from '../Client/merkle_tree.service';
 
-import { Schedule, MerkleDistributionService } from "../Helper/merkle_distribution.service";
-import { MerkleTree } from '../Helper/merkle_tree';
-import { BN } from 'bn.js';
 
 const FAUCET_URL = "https://faucet.devnet.aptoslabs.com"
 
@@ -18,11 +17,25 @@ describe("Hello Aptos", () => {
     let tokenClient: TokenClient
 
     // ACCOUNT DEFINED
+    let defaultAccount: AptosAccount
     let deployerAccount: AptosAccount
     let resourceAccount: AptosAccount
     let userAccount: AptosAccount
-    let tree_whitelist: MerkleTree
-    let new_schedule_1: Schedule
+
+    const CONTRACT_ADDRESS = '0x1c40294f4bbcc145b9a21af713242488a3f41f61665db4d61cdd299ad4aff2fb';
+
+    let userParams1 = { 
+        "Name" : "Noir",
+        "Age"  : "20",
+        "Job"  : "IT"
+    }
+
+    const hashes: Buffer[] = [
+        Hasher.keckka256(Buffer.from(JSON.stringify(userParams1))),
+        Hasher.keckka256(Buffer.from('2acb')),
+        Hasher.keckka256(Buffer.from('3acb')),
+      ];
+
 
     before("Create Connection", async () => {
         client = new HelloAptosClient;
@@ -39,6 +52,8 @@ describe("Hello Aptos", () => {
         deployerAccount = new AptosAccount(privateKeyBytes_deployer);
         resourceAccount = new AptosAccount(privateKeyBytes_resource);
         userAccount = new AptosAccount(privateKeyBytes_user);
+        defaultAccount = new AptosAccount(Uint8Array.from([137, 206, 72, 75, 226, 122, 39, 49, 67, 110, 36, 246, 102, 108, 115, 237, 24, 99, 195, 4, 211, 249, 143, 123, 220, 13, 202, 94, 219, 38, 210, 58]));
+        await faucetClient.fundAccount(defaultAccount.address(), 100000000);
 
         // // Generate accounts.
         // deployerAccount = new AptosAccount();
@@ -48,6 +63,7 @@ describe("Hello Aptos", () => {
         const deployerPrivateKey = await deployerAccount.toPrivateKeyObject();
         const resourcePrivateKey = await resourceAccount.toPrivateKeyObject();
         const userPrivateKey = await userAccount.toPrivateKeyObject();
+        const defaultPrivateKey = await defaultAccount.toPrivateKeyObject();
 
         // Print out account .
         console.log("=== Account generated ===");
@@ -64,6 +80,12 @@ describe("Hello Aptos", () => {
         console.log(`User PrivateKey: ${userPrivateKey.privateKeyHex}`);
         console.log(`User Public Key: ${userPrivateKey.publicKeyHex}`);
 
+
+        console.log(`Default Address: ${defaultAccount.address()}`);
+        console.log(`Default PrivateKey: ${defaultPrivateKey.privateKeyHex}`);
+        console.log(`Default Public Key: ${defaultPrivateKey.publicKeyHex}`);
+        
+
         // Fund accounts.
 
         // await faucetClient.fundAccount(deployerAccount.address(), 100_000_000);
@@ -78,146 +100,66 @@ describe("Hello Aptos", () => {
 
         // INIT SCHEDULE WHITELIST
 
-        const new_schedule_0: Schedule = {
-            index: 0,
-            address: Buffer.from(userAccount.address().toString()),
-            receivingId: 1,
-            receivingAmount: new BN(1),
-            sendingAmount: new BN(0),
-        }
-        new_schedule_1 = {
-            index: 1,
-            address:  Buffer.from(resourceAccount.address().toString()),
-            receivingId: 2,
-            receivingAmount: new BN(1),
-            sendingAmount: new BN(0),
-        }
-        const new_schedule_2: Schedule = {
-            index: 2,
-            address:  Buffer.from(deployerAccount.address().toString()),
-            receivingId: 3,
-            receivingAmount: new BN(1),
-            sendingAmount: new BN(0),
-        }
 
-        tree_whitelist = await MerkleDistributionService.createTree([new_schedule_0, new_schedule_1, new_schedule_2]);
     })
 
-    // it("Verify", async () => {
-    //     let roots = await tree_whitelist.root();
-    //     let proofs = await MerkleDistributionService.printProof(tree_whitelist,1);
-    //     let root = Uint8Array.from(roots.hash);
-    //     let proofsConverted = [Uint8Array.from(proofs[0].hash), Uint8Array.from(proofs[1].hash)];
-    //     let leaf = await MerkleDistributionService.computeHash(new_schedule_1)
-    //     let leafConverted = Uint8Array.from(leaf);
-    //     console.log('test',  `0x${new_schedule_1.address.toString('hex')}`);
-    //     console.log('test', Buffer.from(deployerAccount.address().toString()));
-    //     console.log(`Data: 
-    //     Root: ${root},
-    //     Leaf: ${leafConverted},
-    //     Proof: ${proofsConverted}
+    // it('sha256_test', async function() {
+    //     // const hashes: Buffer[] = [
+    //     //   Hasher.keckka256(Buffer.from([2,1,156,123,56])),
+    //     //   Hasher.keckka256(Buffer.from('2acb')),
+    //     //   Hasher.keckka256(Buffer.from('3acb')),
+    //     // ];
+    //     const tree = new MerkleTreeSha256(hashes);
+    //     const leaf = Hasher.keckka256(Buffer.from([2,1,156,123,56]));
+    //     const proofs = tree.proofs(0).map(node => node.hash);
+    //     const root = tree.root().hash;
+
+    //     console.log(`
+    //         Tree: ${tree},
+    //         Leaf: ${leaf.toString('hex')},
+    //         Proofs: ${proofs.map(proof => proof.toString('hex'))},
     //     `)
-    //     const txHash = await client.verify(
-    //         resourceAccount,
-    //         proofsConverted,
-    //         root,
-    //         leafConverted
+
+
+    //     await MerkleTreeService.sha256(
+    //       client,
+    //       defaultAccount,
+    //       leaf,
+    //       proofs,
+    //       root,
+    //       CONTRACT_ADDRESS,
     //     );
-    //     await client.waitForTransaction(txHash, { checkSuccess: true });
-    //     console.log(`Verify hash: ${txHash}`);
-    // });
+    //   });
 
+    it('set_root test', async function() { 
+        const tree = new MerkleTreeSha256(hashes);
+        const root = tree.root().hash;
 
-    it("Save", async () => {
-        let roots = await tree_whitelist.root();
-        let proofs = await MerkleDistributionService.printProof(tree_whitelist,1);
-        let root = Uint8Array.from(roots.hash);
-        let proofsConverted = [Uint8Array.from(proofs[0].hash), Uint8Array.from(proofs[1].hash)];
-        let leaf = await MerkleDistributionService.printLeaf(tree_whitelist, 1);
-        // console.log('leaf',leaf)
-        let leafConverted = Uint8Array.from(leaf.hash);
-        
-
-        console.log('printProofs',proofs);
-        console.log('printLeaf',leaf)
-        // console.log('test',  `0x${new_schedule_1.address.toString('hex')}`);
-        // console.log('test', Buffer.from(deployerAccount.address().toString()));
-
-        console.log(`Data: 
-        Root: ${root},
-        Leaf: ${leafConverted},
-        Proof: ${proofsConverted}
-        `)
-        const txHash = await client.save(
-            resourceAccount,
-            proofsConverted,
+        await MerkleTreeService.set_root( 
+            client,
+            defaultAccount,
             root,
-            leafConverted
+            CONTRACT_ADDRESS
         );
-        await client.waitForTransaction(txHash, { checkSuccess: true });
-        console.log(`Verify hash: ${txHash}`);
     });
 
-    it("Save Compute", async () => {
-        let roots = await tree_whitelist.root();
-        let proofs = await MerkleDistributionService.printProof(tree_whitelist,1);
-        let root = Uint8Array.from(roots.hash);
-        let proofsConverted = [Uint8Array.from(proofs[0].hash), Uint8Array.from(proofs[1].hash)];
-        let leaf = await MerkleDistributionService.printLeaf(tree_whitelist, 1);
-        // console.log('leaf',leaf)
-        let leafConverted = Uint8Array.from(leaf.hash);
-        
+    it('verify test', async function() { 
+        const tree = new MerkleTreeSha256(hashes);
+        const proofs = tree.proofs(0).map(node => node.hash);
+        let params = { 
+            "Name" : "Noir",
+            "Age"  : "20",
+            "Job"  : "IT"
+        }
 
-        console.log('printProofs',proofs);
-        console.log('printLeaf',leaf)
-        // console.log('test',  `0x${new_schedule_1.address.toString('hex')}`);
-        // console.log('test', Buffer.from(deployerAccount.address().toString()));
+        let paramsEncode = Buffer.from(JSON.stringify(params));
 
-        console.log(`Data: 
-        Root: ${root},
-        Leaf: ${leafConverted},
-        Proof: ${proofsConverted}
-        `)
-        const txHash = await client.saveCompute(
-            resourceAccount,
-            proofsConverted,
-            root,
+        await MerkleTreeService.verify(
+            client,
+            defaultAccount,
+            proofs,
+            paramsEncode,
+            CONTRACT_ADDRESS
         );
-        await client.waitForTransaction(txHash, { checkSuccess: true });
-        console.log(`Verify hash: ${txHash}`);
     });
-
-
-
-    it("Test", async () => {
-        let roots = await tree_whitelist.root();
-        let proofs = await MerkleDistributionService.printProof(tree_whitelist,1);
-        let root = Uint8Array.from(roots.hash);
-        let proofsConverted = [Uint8Array.from(proofs[0].hash), Uint8Array.from(proofs[1].hash)];
-        let leaf = await MerkleDistributionService.printLeaf(tree_whitelist, 1);
-        // console.log('leaf',leaf)
-        let leafConverted = Uint8Array.from(leaf.hash);
-        
-
-        console.log('printProofs',proofs);
-        console.log('printLeaf',leaf)
-        // console.log('test',  `0x${new_schedule_1.address.toString('hex')}`);
-        // console.log('test', Buffer.from(deployerAccount.address().toString()));
-
-        console.log(`Data: 
-        Root: ${root},
-        Leaf: ${leafConverted},
-        Proof: ${proofsConverted}
-        `)
-        const txHash = await client.verify(
-            resourceAccount,
-            proofsConverted,
-            root,
-            leafConverted
-        );
-        await client.waitForTransaction(txHash, { checkSuccess: true });
-        console.log(`Verify hash: ${txHash}`);
-    });
-
-
 })

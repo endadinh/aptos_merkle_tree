@@ -1,5 +1,5 @@
 build*
-.aptos
-node_modules
+.aptos*
+node_modules*
 yarn.lock
-package-lock*
+package-lock

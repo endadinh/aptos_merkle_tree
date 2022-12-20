@@ -3,7 +3,7 @@ name = 'dagora_launchpad'
 version = '1.0.0'
 
 [addresses]
-DagoraLaunchpad = "d849853cbe1ae22a80eebf1d57bc0d0258b8c72e8cea601653f994ffaf7132d3"
+DagoraLaunchpad = "1c40294f4bbcc145b9a21af713242488a3f41f61665db4d61cdd299ad4aff2fb"
 
 [dependencies]
 AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-framework/", rev="devnet"}
